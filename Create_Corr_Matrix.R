@@ -1,3 +1,12 @@
+#--------------------------------------------------------------------
+#
+# CREATE MATRIX 
+#
+# Creates the matrix for coverage corrected files for every viewpoint
+# file selected
+#
+#--------------------------------------------------------------------
+
 Create_Corr_Matrix = function(viewpt){
   setwd("C:/Users/admin/Google Drive (kimberlyquililan@gmail.com)/Data/CoverageCorrected")
   list.samples = c("cMCL_1064","cMCL_568","nnMCL_309","nnMCL_817", "nnMCL_828",
