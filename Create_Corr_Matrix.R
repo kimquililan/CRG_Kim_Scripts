@@ -54,6 +54,8 @@ Create_Norm_Matrix = function(viewpt){
   new_matrix <<- new_matrix
 }
 
+#-------------------------RUN THE CODE--------------------------
+#Run the following to create matrix for all viewpoints
 viewpoints = c("chr11.68.to.69",	"chr11.69.to.70",	"chr11.70.to.71",	"chr14.104.to.105",	"chr14.105.to.106","chr14.106.to.107")
 for(i in 1:6){
   Create_Norm_Matrix(viewpoints[i])
