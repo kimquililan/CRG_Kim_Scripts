@@ -40,6 +40,7 @@ matrix = data.frame(tmp, matrix)
 
 #-------------Data Imputation------------------#
 
+cell_group = "CLL"
 cell_group = "MCL"
 ifelse(cell_group == "MCL", 
        experimental <- c("cMCL_1064","cMCL_568","nnMCL_309","nnMCL_817", "nnMCL_828"),
