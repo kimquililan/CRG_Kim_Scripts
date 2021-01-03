@@ -46,20 +46,20 @@ matrix = data.frame(tmp, matrix)
 chrom.lengths <- ceiling(table(matrix$chrom)/10)
 
 SubsetMatrix = function(chr){
-  tmp3 = subset(matrix, chrom == chr)
+  SubsetMatrix_100Kb = subset(matrix, chrom == chr)
   chromosome = 0
-  matrix.1Mb = c()
-  kim = subset(tmp3, start %in% seq(chromosome*1e6, (chromosome+1)*1e6-1e5, by=1e5))
-  kim2 = apply(kim[,-(1:4)],2, mean, na.rm=T)
-  matrix.1Mb = data.frame(bin = 0, start = chromosome*1e6, end = (chromosome+1)*1e6, chrom = chr, t(kim2))
+  SubsetMatrix_1Mb = c()
+  ListOfTen= subset(SubsetMatrix_100Kb, start %in% seq(chromosome*1e6, (chromosome+1)*1e6-1e5, by=1e5))
+  MeanListOfTen = apply(ListOfTen[,-(1:4)],2, mean, na.rm=T)
+  SubsetMatrix_1Mb = data.frame(bin = 0, start = chromosome*1e6, end = (chromosome+1)*1e6, chrom = chr, t(MeanListOfTen))
     
   for(chromosome in 1:(chrom.lengths[chr]-1)){
-    kim = subset(tmp3, start %in% seq(chromosome*1e6, (chromosome+1)*1e6-1e5, by=1e5))
-    kim2 = apply(kim[,-(1:4)],2, mean, na.rm=T)
-    kim3 = data.frame(bin = chromosome, start = chromosome*1e6, end = (chromosome+1)*1e6, chrom = chr, t(kim2))
-    matrix.1Mb = rbind(matrix.1Mb, kim3, stringsAsFactors =FALSE)
+    ListOfTen= subset(SubsetMatrix_100Kb, start %in% seq(chromosome*1e6, (chromosome+1)*1e6-1e5, by=1e5))
+    MeanListOfTen = apply(ListOfTen[,-(1:4)],2, mean, na.rm=T)
+    MeanListOfTen = data.frame(bin = chromosome, start = chromosome*1e6, end = (chromosome+1)*1e6, chrom = chr, t(MeanListOfTen))
+    SubsetMatrix_1Mb = rbind(SubsetMatrix_1Mb, MeanListOfTen, stringsAsFactors =FALSE)
   }
-  matrix.1Mb <<- matrix.1Mb
+  SubsetMatrix_1Mb <<- SubsetMatrix_1Mb
 }
 
 curr.matrix = list()
