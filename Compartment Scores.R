@@ -4,7 +4,7 @@
 #
 # Compares compartment scores between MCL and normals / CLL and normals
 #
-# updated as of: 2020/12/19
+# updated as of: 2021/01/04
 #-------------------------------------------------------------------------------------
 
 #Create the matrix
@@ -15,38 +15,38 @@ list.samples = c("cMCL_1064","cMCL_568","nnMCL_309","nnMCL_817", "nnMCL_828",
 list.chr = c(1:22)
 
 tmp = read.table(paste0("chr.",list.chr[1],".compartment.data.scaled.txt"), header=T)
-matrix = data.frame(chrom = rep(list.chr[1],nrow(tmp)),tmp)
+matrix_100kb = data.frame(chrom = rep(list.chr[1],nrow(tmp)),tmp)
 
 for(i in 2:22){
   tmp = read.table(paste0("chr.",list.chr[i],".compartment.data.scaled.txt"), header=T)
-  matrix2 = data.frame(chrom= rep(list.chr[i],nrow(tmp)),tmp)
-  matrix = rbind(matrix, matrix2, stringsAsFactors = FALSE)
+  matrix_100kb_tmp = data.frame(chrom= rep(list.chr[i],nrow(tmp)),tmp)
+  matrix_100kb = rbind(matrix_100kb, matrix_100kb_tmp, stringsAsFactors = FALSE)
 }
 
-matrix = matrix[,c("chrom",list.samples)]
+matrix_100kb = matrix_100kb[,c("chrom",list.samples)]
 
-current = subset(matrix, chrom == 1)
+current = subset(matrix_100kb, chrom == 1)
 tmp = data.frame(bin = 0:(nrow(current)-1))
 tmp$start = tmp$bin*1e5
 tmp$end = tmp$start + 1e5
 
 for(i in 2:22){
-  current = subset(matrix, chrom == i)
+  current = subset(matrix_100kb, chrom == i)
   tmp2 = data.frame(bin = 0:(nrow(current)-1))
   tmp2$start = tmp2$bin*1e5
   tmp2$end = tmp2$start + 1e5
   tmp = rbind(tmp, tmp2, stringsAsFactors = FALSE)
 }
 
-matrix = data.frame(tmp, matrix)
+matrix_100kb = data.frame(tmp, matrix_100kb)
 
 
 #--------------------------Subset Matrix for 1Mb-------------------
 
-chrom.lengths <- ceiling(table(matrix$chrom)/10)
+chrom.lengths <- ceiling(table(matrix_100kb$chrom)/10)
 
 SubsetMatrix = function(chr){
-  SubsetMatrix_100Kb = subset(matrix, chrom == chr)
+  SubsetMatrix_100Kb = subset(matrix_100kb, chrom == chr)
   chromosome = 0
   SubsetMatrix_1Mb = c()
   ListOfTen= subset(SubsetMatrix_100Kb, start %in% seq(chromosome*1e6, (chromosome+1)*1e6-1e5, by=1e5))
@@ -73,18 +73,24 @@ matrix_1Mb = do.call("rbind", curr.matrix)
 
 cell_group = "CLL"
 cell_group = "MCL"
-ifelse(cell_group == "MCL", 
-       experimental <- c("cMCL_1064","cMCL_568","nnMCL_309","nnMCL_817", "nnMCL_828"),
-       experimental <- c("mCLL_3","mCLL_110","mCLL_1228","mCLL_1525","mCLL_1532","uCLL_12","uCLL_182"))
+matrix = matrix_100kb
+matrix = matrix_1Mb
 
-control = c("NBC_1","NBC_2","NBC_3","GCBC_1","GCBC_2","GCBC_3","MBC_1","MBC_2","MBC_3","PBC_1","PBC_2","PBC_3")
-
-NAs.exp<-rowSums(is.na(matrix[,experimental]))
-NAs.control<-rowSums(is.na(matrix[,control]))
-rows.to.include<-which(NAs.exp<=(length(experimental)-3) & NAs.control<=(length(control)-3))
-matrix<-matrix[rows.to.include,]
-dim(matrix)
-
+  ifelse(cell_group == "MCL", 
+         experimental <- c("cMCL_1064","cMCL_568","nnMCL_309","nnMCL_817", "nnMCL_828"),
+         experimental <- c("mCLL_3","mCLL_110","mCLL_1228","mCLL_1525","mCLL_1532","uCLL_12","uCLL_182"))
+  
+  control = c("NBC_1","NBC_2","NBC_3","GCBC_1","GCBC_2","GCBC_3","MBC_1","MBC_2","MBC_3","PBC_1","PBC_2","PBC_3")
+  
+  NAs.exp<-rowSums(is.na(matrix[,experimental]))
+  NAs.control<-rowSums(is.na(matrix[,control]))
+  rows.to.include<-which(NAs.exp<=(length(experimental)-3) & NAs.control<=(length(control)-3))
+  matrix <- matrix[rows.to.include,]
+  dim(matrix)
+  
+#Final 'matrix' will be used downstream
+  
+  
 #----------------------------Analysis-----------------------------
 #Difference of PC1 values
 mean_exp = apply(matrix, 1, function(x) mean(x[experimental]))
