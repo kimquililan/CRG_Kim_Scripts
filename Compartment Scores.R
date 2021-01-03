@@ -40,6 +40,35 @@ for(i in 2:22){
 
 matrix = data.frame(tmp, matrix)
 
+
+#--------------------------Subset Matrix for 1Mb-------------------
+
+chrom.lengths <- ceiling(table(matrix$chrom)/10)
+
+SubsetMatrix = function(chr){
+  tmp3 = subset(matrix, chrom == chr)
+  chromosome = 0
+  matrix.1Mb = c()
+  kim = subset(tmp3, start %in% seq(chromosome*1e6, (chromosome+1)*1e6-1e5, by=1e5))
+  kim2 = apply(kim[,-(1:4)],2, mean, na.rm=T)
+  matrix.1Mb = data.frame(bin = 0, start = chromosome*1e6, end = (chromosome+1)*1e6, chrom = chr, t(kim2))
+    
+  for(chromosome in 1:(chrom.lengths[chr]-1)){
+    kim = subset(tmp3, start %in% seq(chromosome*1e6, (chromosome+1)*1e6-1e5, by=1e5))
+    kim2 = apply(kim[,-(1:4)],2, mean, na.rm=T)
+    kim3 = data.frame(bin = chromosome, start = chromosome*1e6, end = (chromosome+1)*1e6, chrom = chr, t(kim2))
+    matrix.1Mb = rbind(matrix.1Mb, kim3, stringsAsFactors =FALSE)
+  }
+  matrix.1Mb <<- matrix.1Mb
+}
+
+curr.matrix = list()
+for(i in 1:22){
+  curr.matrix[[i]] <- SubsetMatrix(i)
+}
+
+matrix_1Mb = do.call("rbind", curr.matrix)
+
 #---------------------------Data Imputation------------------------
 
 cell_group = "CLL"
