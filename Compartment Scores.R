@@ -69,45 +69,48 @@ for(i in 1:22){
 
 matrix_1Mb = do.call("rbind", curr.matrix)
 
-#---------------------------Data Imputation------------------------
+#---------------------------Data Imputation and Analysis------------------------
+#Data Imputation = cleaning the data 
+#Analysis = labeling of Compartment State
 
-cell_group = "CLL"
-cell_group = "MCL"
-matrix = matrix_100kb
-matrix = matrix_1Mb
-
-  ifelse(cell_group == "MCL", 
-         experimental <- c("cMCL_1064","cMCL_568","nnMCL_309","nnMCL_817", "nnMCL_828"),
-         experimental <- c("mCLL_3","mCLL_110","mCLL_1228","mCLL_1525","mCLL_1532","uCLL_12","uCLL_182"))
+DataImputation = function(cell_group, matrix){
+  #cell_group ...... either MCL or CLL
+  #matrix...........either matrix_100kb or matrix_1Mb
   
-  control = c("NBC_1","NBC_2","NBC_3","GCBC_1","GCBC_2","GCBC_3","MBC_1","MBC_2","MBC_3","PBC_1","PBC_2","PBC_3")
+  ifelse(cell_group == "MCL", 
+         experimental <<- c("cMCL_1064","cMCL_568","nnMCL_309","nnMCL_817", "nnMCL_828"),
+         experimental <<- c("mCLL_3","mCLL_110","mCLL_1228","mCLL_1525","mCLL_1532","uCLL_12","uCLL_182"))
+  
+  control <<- c("NBC_1","NBC_2","NBC_3","GCBC_1","GCBC_2","GCBC_3","MBC_1","MBC_2","MBC_3","PBC_1","PBC_2","PBC_3")
   
   NAs.exp<-rowSums(is.na(matrix[,experimental]))
   NAs.control<-rowSums(is.na(matrix[,control]))
   rows.to.include<-which(NAs.exp<=(length(experimental)-3) & NAs.control<=(length(control)-3))
-  matrix <- matrix[rows.to.include,]
-  dim(matrix)
+  matrix <<- matrix[rows.to.include,]
+}
+AnalysisMatrix = function(cell_group, SelectedMatrix){
+  matrix = DataImputation(cell_group,SelectedMatrix)
   
-#Final 'matrix' will be used downstream
+  #Difference of PC1 values
+  mean_exp = apply(matrix, 1, function(x) median(x[experimental]))
+  mean_control = apply(matrix, 1, function(x) median(x[control]))
+  new_matrix = data.frame(matrix,mean_exp,mean_control)
   
+  new_matrix$diff = new_matrix$mean_exp - new_matrix$mean_control
   
-#----------------------------Analysis-----------------------------
-#Difference of PC1 values
-mean_exp = apply(matrix, 1, function(x) mean(x[experimental]))
-mean_control = apply(matrix, 1, function(x) mean(x[control]))
-new_matrix = data.frame(matrix,mean_exp,mean_control)
+  #Compartment states label
+  new_matrix$cs_status = with(new_matrix, ifelse(mean_control > 0 & mean_exp > 0, "A-A",
+                          ifelse(mean_control>0 & mean_exp < 0, "A-B",
+                                 ifelse(mean_control < 0 & mean_exp < 0,"B-B",
+                                        ifelse(mean_control <  0 & mean_exp > 0, "B-A", NA)))))
+  
+  #Define the cell group which was compared to Normals
+  new_matrix$cell.grp = cell_group
+  new_matrix <<- new_matrix
+}
 
-new_matrix$diff = new_matrix$mean_exp - new_matrix$mean_control
-
-#Compartment states label
-new_matrix$cs_status = with(new_matrix, ifelse(mean_control > 0 & mean_exp > 0, "A-A",
-                        ifelse(mean_control>0 & mean_exp < 0, "A-B",
-                               ifelse(mean_control < 0 & mean_exp < 0,"B-B",
-                                      ifelse(mean_control <  0 & mean_exp > 0, "B-A", NA)))))
-
-#Define the cell group which was compared to Normals
-new_matrix$cell.grp = cell_group
-
+new_matrix_MCL = AnalysisMatrix("MCL",matrix_100kb)
+new_matrix_CLL = AnalysisMatrix("CLL",matrix_100kb)
                      
 #---------------------------Visualization------------------------
 
@@ -123,16 +126,16 @@ new_matrix$cell.grp = cell_group
     }
 
   #Boxplots
-    theme(panel.background = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),axis.line = element_line(colour = "black"),panel.border = element_rect(colour = "black", fill=NA, size=1))
     data = rbind(new_matrix_CLL,new_matrix_MCL)
     data$chrom = factor(data$chrom)
+    library(ggplot2)
     ggplot(data, aes(x=chrom, y=diff, fill=cell.grp)) + geom_boxplot() + facet_wrap(~chrom, scale="free") + scale_fill_manual(values=c("yellow","orange")) + geom_hline(yintercept=0,lty=2) + ggtitle("All bins")
     ggplot(data, aes(x=chrom, y=diff, fill=cell.grp)) + geom_boxplot() + scale_fill_manual(values=c("yellow","orange")) + geom_hline(yintercept=0,lty=2) + ggtitle("All bins") + theme_minimal()
-    ggplot(new_matrix_CLL, aes(y=diff, x=chrom)) + geom_boxplot(fill="yellow") + geom_hline(yintercept=0,lty=2) + ggtitle("All bins - CLL vs normals") 
-    ggplot(new_matrix_MCL, aes(y=diff, x=chrom)) + geom_boxplot(fill="orange") + geom_hline(yintercept=0,lty=2) + ggtitle("All bins - MCL vs normals")
+    ggplot(subset(data, cell.grp == "CLL"), aes(y=diff, x=chrom)) + geom_boxplot(fill="yellow") + geom_hline(yintercept=0,lty=2) + ggtitle("All bins - CLL vs normals") 
+    ggplot(subset(data, cell.grp == "MCL"), aes(y=diff, x=chrom)) + geom_boxplot(fill="orange") + geom_hline(yintercept=0,lty=2) + ggtitle("All bins - MCL vs normals")
 
-    boxplot(diff~chrom, data=new_matrix_CLL,pch=19,ylim=c(-1,1),col="yellow",main="CLL vs normals")
-    boxplot(diff~chrom, data=new_matrix_MCL,pch=19,ylim=c(-1,1),col="orange",main="MCL vs normals")
+    boxplot(diff~chrom, data=new_matrix_CLL,pch=19,ylim=c(-1,1),col="yellow",main="CLL vs normals"); abline(h=0,lty=2)
+    boxplot(diff~chrom, data=new_matrix_MCL,pch=19,ylim=c(-1,1),col="orange",main="MCL vs normals"); abline(h=0,lty=2)
 
   #Histogram
     #Difference only
