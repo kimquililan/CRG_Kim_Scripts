@@ -4,10 +4,11 @@
 #
 # Compares compartment scores between MCL and normals / CLL and normals
 #
-# updated as of: 2021/01/04
+# updated as of: 2021/01/11
 #-------------------------------------------------------------------------------------
 
-#Create the matrix
+#---------------------Create the matrix_100kb-----------------------------------------
+setwd("~/Google Drive/Data/CompartmentScores")
 list.samples = c("cMCL_1064","cMCL_568","nnMCL_309","nnMCL_817", "nnMCL_828",
                  "mCLL_3","mCLL_110","mCLL_1228","mCLL_1525","mCLL_1532","uCLL_12","uCLL_182",
                  "NBC_1","NBC_2","NBC_3","GCBC_1","GCBC_2","GCBC_3","MBC_1","MBC_2","MBC_3",
@@ -41,7 +42,7 @@ for(i in 2:22){
 matrix_100kb = data.frame(tmp, matrix_100kb)
 
 
-#--------------------------Subset Matrix for 1Mb-------------------
+#--------------------------Subset Matrix for 1Mb--------------------------------
 
 chrom.lengths <- ceiling(table(matrix_100kb$chrom)/10)
 
@@ -50,14 +51,14 @@ SubsetMatrix = function(chr){
   chromosome = 0
   SubsetMatrix_1Mb = c()
   ListOfTen= subset(SubsetMatrix_100Kb, start %in% seq(chromosome*1e6, (chromosome+1)*1e6-1e5, by=1e5))
-  MeanListOfTen = apply(ListOfTen[,-(1:4)],2, median, na.rm=T)
-  SubsetMatrix_1Mb = data.frame(bin = 0, start = chromosome*1e6, end = (chromosome+1)*1e6, chrom = chr, t(MeanListOfTen))
+  AveListOfTen = apply(ListOfTen[,-(1:4)],2, mean, na.rm=T)
+  SubsetMatrix_1Mb = data.frame(bin = 0, start = chromosome*1e6, end = (chromosome+1)*1e6, chrom = chr, t(AveListOfTen))
     
   for(chromosome in 1:(chrom.lengths[chr]-1)){
     ListOfTen= subset(SubsetMatrix_100Kb, start %in% seq(chromosome*1e6, (chromosome+1)*1e6-1e5, by=1e5))
-    MeanListOfTen = apply(ListOfTen[,-(1:4)],2, median, na.rm=T)
-    MeanListOfTen = data.frame(bin = chromosome, start = chromosome*1e6, end = (chromosome+1)*1e6, chrom = chr, t(MeanListOfTen))
-    SubsetMatrix_1Mb = rbind(SubsetMatrix_1Mb, MeanListOfTen, stringsAsFactors =FALSE)
+    AveListOfTen = apply(ListOfTen[,-(1:4)],2, mean, na.rm=T)
+    AveListOfTen = data.frame(bin = chromosome, start = chromosome*1e6, end = (chromosome+1)*1e6, chrom = chr, t(AveListOfTen))
+    SubsetMatrix_1Mb = rbind(SubsetMatrix_1Mb, AveListOfTen, stringsAsFactors =FALSE)
   }
   SubsetMatrix_1Mb <<- SubsetMatrix_1Mb
 }
@@ -69,7 +70,7 @@ for(i in 1:22){
 
 matrix_1Mb = do.call("rbind", curr.matrix)
 
-#---------------------------Data Imputation and Analysis------------------------
+#-------------------------Data Imputation and Analysis of matrix 100kb------------------------
 #Data Imputation = cleaning the data 
 #Analysis = labeling of Compartment State
 
@@ -88,21 +89,22 @@ DataImputation = function(cell_group, matrix){
   rows.to.include<-which(NAs.exp<=(length(experimental)-3) & NAs.control<=(length(control)-3))
   matrix <- matrix[rows.to.include,]
 }
+
 AnalysisMatrix = function(cell_group, SelectedMatrix){
   matrix = DataImputation(cell_group,SelectedMatrix)
   
   #Difference of PC1 values
-  mean_exp = apply(matrix, 1, function(x) median(x[experimental]))
-  mean_control = apply(matrix, 1, function(x) median(x[control]))
-  new_matrix = data.frame(matrix,mean_exp,mean_control)
+  ave_exp = apply(matrix, 1, function(x) mean(x[experimental]))
+  ave_control = apply(matrix, 1, function(x) mean(x[control]))
+  new_matrix = data.frame(matrix,ave_exp,ave_control)
   
-  new_matrix$diff = new_matrix$mean_exp - new_matrix$mean_control
+  new_matrix$diff = new_matrix$ave_exp - new_matrix$ave_control
   
   #Compartment states label
-  new_matrix$cs_status = with(new_matrix, ifelse(mean_control > 0 & mean_exp > 0, "A-A",
-                          ifelse(mean_control>0 & mean_exp < 0, "A-B",
-                                 ifelse(mean_control < 0 & mean_exp < 0,"B-B",
-                                        ifelse(mean_control <  0 & mean_exp > 0, "B-A", NA)))))
+  new_matrix$cs_status = with(new_matrix, ifelse(ave_control > 0 & ave_exp > 0, "A-A",
+                          ifelse(ave_control>0 & ave_exp < 0, "A-B",
+                                 ifelse(ave_control < 0 & ave_exp < 0,"B-B",
+                                        ifelse(ave_control <  0 & ave_exp > 0, "B-A", NA)))))
   
   #Define the cell group which was compared to Normals
   new_matrix$cell.grp = cell_group
@@ -119,8 +121,8 @@ new_matrix_CLL = AnalysisMatrix("CLL",matrix_100kb)
     par(mfrow=c(2,1))
     new_matrix = new_matrix_MCL
     for(i in 1:22){
-      barplot(new_matrix[which(new_matrix$chrom == i),"mean_control"],main=paste0("chr",i),ylim=c(-1,1),ylab="Normal",col=ifelse(new_matrix[which(new_matrix$chrom == i),"mean_control"]>0,"red","blue"),border=NA)
-      barplot(new_matrix[which(new_matrix$chrom == i),"mean_exp"],ylim=c(-1,1),ylab="MCL",col=ifelse(new_matrix[which(new_matrix$chrom == i),"mean_exp"]>0,"red","blue"),border=NA)
+      barplot(new_matrix[which(new_matrix$chrom == i),"ave_control"],main=paste0("chr",i),ylim=c(-1,1),ylab="Normal",col=ifelse(new_matrix[which(new_matrix$chrom == i),"ave_control"]>0,"red","blue"),border=NA)
+      barplot(new_matrix[which(new_matrix$chrom == i),"ave_exp"],ylim=c(-1,1),ylab="MCL",col=ifelse(new_matrix[which(new_matrix$chrom == i),"ave_exp"]>0,"red","blue"),border=NA)
     }
     for(i in 1:22){
       barplot(new_matrix_MCL[which(new_matrix_MCL$chrom == i),"diff"], main=paste0("chr",i), ylim=c(-1,1), ylab="Mean PC1 values (MCL-normal)", col=ifelse(new_matrix_MCL[which(new_matrix_MCL$chrom == i),"diff"]>0,"red","blue"),border=NA)
@@ -166,8 +168,8 @@ new_matrix_CLL = AnalysisMatrix("CLL",matrix_100kb)
     #Mean MCL and Mean Normal 
       i=0                  
       for(i in 1:22){
-        exp = density(subset(new_matrix_CLL, chrom == i)$mean_exp, na.rm=T)
-        ctr = density(subset(new_matrix_CLL, chrom == i)$mean_control, na.rm=T)
+        exp = density(subset(new_matrix_CLL, chrom == i)$ave_exp, na.rm=T)
+        ctr = density(subset(new_matrix_CLL, chrom == i)$ave_control, na.rm=T)
         plot(exp, xlim=c(-0.1,0.1), main=paste0("chr",i), type="n")
         lines(exp, col="yellow4")
         lines(ctr, col="grey")
@@ -202,7 +204,7 @@ new_matrix_CLL = AnalysisMatrix("CLL",matrix_100kb)
   boxplot(diff~chrom, data=new_matrix[which(new_matrix$cs_status %in% c("A-B","B-A")),],pch=19,col="yellow",main="CLL vs normals")
   abline(h=0,lty=2)
 
-#----------------------Interaction Score vs CS-------------------------
+#-----------------------------Interaction Score vs CS-------------------------
 
   setwd("~/Google Drive/Data/Interaction Scores (Genome Wide)")
   
@@ -218,8 +220,8 @@ new_matrix_CLL = AnalysisMatrix("CLL",matrix_100kb)
         IntScores_CLL = do.call(rbind,Matrix_Int_CS("CLL"))
         
         tmp = data.frame(matrix_1Mb, Int_MCL = unlist(IntScores_MCL), Int_CLL = unlist(IntScores_CLL))
-        matrix_1Mb_MCL = AnalysisMatrix("MCL",tmp)[,c("bin","start","end","chrom", "Int_MCL","mean_exp","mean_control","diff")]
-        matrix_1Mb_CLL = AnalysisMatrix("CLL",tmp)[,c("bin","start","end","chrom","Int_CLL","mean_exp","mean_control","diff")]
+        matrix_1Mb_MCL = AnalysisMatrix("MCL",tmp)[,c("bin","start","end","chrom", "Int_MCL","ave_exp","ave_control","diff")]
+        matrix_1Mb_CLL = AnalysisMatrix("CLL",tmp)[,c("bin","start","end","chrom","Int_CLL","ave_exp","ave_control","diff")]
         
   #Individual samples matrix
   list.samples = c("cMCL_1064","cMCL_568","nnMCL_309","nnMCL_817", "nnMCL_828",
@@ -270,13 +272,13 @@ new_matrix_CLL = AnalysisMatrix("CLL",matrix_100kb)
   Plottin = function(matrix, x, y, chromosome, cell_group){
     plot(matrix[which(matrix$chrom == chromosome),x], matrix[which(matrix$chrom == chromosome),y],pch=19,cex=0.5, xlab="Interaction Scores", ylab=c("Compartment Score",cell_group),main=paste("chromosome",chromosome))
   }
-  #Plottin(matrix_1Mb_MCL, "Int_MCL", "mean_exp", 11, "MCL" )
+  #Plottin(matrix_1Mb_MCL, "Int_MCL", "ave_exp", 11, "MCL" )
   #Plottin(matrix_1Mb_MCL, "Int_MCL", "diff", 14, "MCL)
   
   Plottin2 = function(matrix, x, y, chromosome, cell_group){
     plot(matrix[which(matrix$chrom == chromosome),x], matrix[which(matrix$chrom == chromosome),y],pch=19,cex=0.7, xlab=c("Compartment Score","Normal"), ylab=c("Compartment Score",cell_group),main=paste("chromosome",chromosome))
   }
-  #Plottin2(matrix_1Mb_MCL, "mean_control", "diff", 11, "MCL-normal" )
+  #Plottin2(matrix_1Mb_MCL, "ave_control", "diff", 11, "MCL-normal" )
   
   
   #Triple
@@ -298,19 +300,19 @@ new_matrix_CLL = AnalysisMatrix("CLL",matrix_100kb)
     }
   Plottin3(matrix_1Mb_MCL, "bin", "Int_MCL", 11, "Interaction Scores", "MCL",-5,5)  
   Plottin3(matrix_1Mb_MCL, "bin", "diff", 11, "Compartment Scores", "MCL-normal")  
-  Plottin3(matrix_1Mb_MCL, "bin", "mean_exp", 11, "Compartment Scores", "MCL")
+  Plottin3(matrix_1Mb_MCL, "bin", "ave_exp", 11, "Compartment Scores", "MCL")
   
   Plottin3(matrix_1Mb_MCL, "bin", "Int_MCL", 14, "Interaction Scores", "MCL",-5,5)  
   Plottin3(matrix_1Mb_MCL, "bin", "diff", 14, "Compartment Scores", "MCL-normal")  
-  Plottin3(matrix_1Mb_MCL, "bin", "mean_exp", 14, "Compartment Scores", "MCL")
+  Plottin3(matrix_1Mb_MCL, "bin", "ave_exp", 14, "Compartment Scores", "MCL")
   
   Plottin3(matrix_1Mb_CLL, "bin", "Int_CLL", 11, "Interaction Scores", "CLL",-5,5)  
   Plottin3(matrix_1Mb_CLL, "bin", "diff", 11, "Compartment Scores", "CLL-normal")  
-  Plottin3(matrix_1Mb_CLL, "bin", "mean_exp", 11, "Compartment Scores", "CLL")
+  Plottin3(matrix_1Mb_CLL, "bin", "ave_exp", 11, "Compartment Scores", "CLL")
   
   Plottin3(matrix_1Mb_CLL, "bin", "Int_CLL", 14, "Interaction Scores", "CLL",-5,5)  
   Plottin3(matrix_1Mb_CLL, "bin", "diff", 14, "Compartment Scores", "CLL-normal")  
-  Plottin3(matrix_1Mb_CLL, "bin", "mean_exp", 14, "Compartment Scores", "CLL")
+  Plottin3(matrix_1Mb_CLL, "bin", "ave_exp", 14, "Compartment Scores", "CLL")
   
 #------Per sample
   PlotFig1a = function(matrix, x, y, chromosome, cell_group){
