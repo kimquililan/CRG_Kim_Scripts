@@ -51,12 +51,12 @@ SubsetMatrix = function(chr){
   chromosome = 0
   SubsetMatrix_1Mb = c()
   ListOfTen= subset(SubsetMatrix_100Kb, start %in% seq(chromosome*1e6, (chromosome+1)*1e6-1e5, by=1e5))
-  AveListOfTen = apply(ListOfTen[,-(1:4)],2, mean, na.rm=T)
+  AveListOfTen = apply(ListOfTen[,-(1:4)],2, median, na.rm=T)
   SubsetMatrix_1Mb = data.frame(bin = 0, start = chromosome*1e6, end = (chromosome+1)*1e6, chrom = chr, t(AveListOfTen))
     
   for(chromosome in 1:(chrom.lengths[chr]-1)){
     ListOfTen= subset(SubsetMatrix_100Kb, start %in% seq(chromosome*1e6, (chromosome+1)*1e6-1e5, by=1e5))
-    AveListOfTen = apply(ListOfTen[,-(1:4)],2, mean, na.rm=T)
+    AveListOfTen = apply(ListOfTen[,-(1:4)],2, median, na.rm=T)
     AveListOfTen = data.frame(bin = chromosome, start = chromosome*1e6, end = (chromosome+1)*1e6, chrom = chr, t(AveListOfTen))
     SubsetMatrix_1Mb = rbind(SubsetMatrix_1Mb, AveListOfTen, stringsAsFactors =FALSE)
   }
@@ -82,7 +82,8 @@ DataImputation = function(cell_group, matrix){
          experimental <<- c("cMCL_1064","cMCL_568","nnMCL_309","nnMCL_817", "nnMCL_828"),
          experimental <<- c("mCLL_3","mCLL_110","mCLL_1228","mCLL_1525","mCLL_1532","uCLL_12","uCLL_182"))
   
-  control <<- c("NBC_1","NBC_2","NBC_3","GCBC_1","GCBC_2","GCBC_3","MBC_1","MBC_2","MBC_3","PBC_1","PBC_2","PBC_3")
+  #control <<- c("NBC_1","NBC_2","NBC_3","GCBC_1","GCBC_2","GCBC_3","MBC_1","MBC_2","MBC_3","PBC_1","PBC_2","PBC_3")
+  control <<- c("NBC_1","NBC_2","NBC_3","MBC_1","MBC_2","MBC_3")
   
   NAs.exp<-rowSums(is.na(matrix[,experimental]))
   NAs.control<-rowSums(is.na(matrix[,control]))
@@ -94,8 +95,8 @@ AnalysisMatrix = function(cell_group, SelectedMatrix){
   matrix = DataImputation(cell_group,SelectedMatrix)
   
   #Difference of PC1 values
-  ave_exp = apply(matrix, 1, function(x) mean(x[experimental]))
-  ave_control = apply(matrix, 1, function(x) mean(x[control]))
+  ave_exp = apply(matrix, 1, function(x) median(x[experimental]))
+  ave_control = apply(matrix, 1, function(x) median(x[control]))
   new_matrix = data.frame(matrix,ave_exp,ave_control)
   
   new_matrix$diff = new_matrix$ave_exp - new_matrix$ave_control
@@ -269,11 +270,27 @@ new_matrix_CLL = AnalysisMatrix("CLL",matrix_100kb)
   
   #-------Interaction Counts vs MCL/CLL/Normal CS
   
-  Plottin = function(matrix, x, y, chromosome, cell_group){
-    plot(matrix[which(matrix$chrom == chromosome),x], matrix[which(matrix$chrom == chromosome),y],pch=19,cex=0.5, xlab="Interaction Scores", ylab=c("Compartment Score",cell_group),main=paste("chromosome",chromosome))
+  Plottin = function(matrix, x, y, chromosome, cell_group,ylimdown=NULL, ylimup=NULL){
+    plot(matrix[which(matrix$chrom == chromosome),x], matrix[which(matrix$chrom == chromosome),y],pch=19,cex=0.5,ylim=c(ylimdown,ylimup),xlab="Interaction Scores", ylab=c("Compartment Score",cell_group),main=paste("chromosome",chromosome))
+  }
+  LinesPlottin = function(matrix, x, y, chromosome, cell_group){
+    lines(matrix[which(matrix$chrom == chromosome),x], matrix[which(matrix$chrom == chromosome),y],type ='p',pch=19,cex=0.5, col="grey")
   }
   #Plottin(matrix_1Mb_MCL, "Int_MCL", "ave_exp", 11, "MCL" )
   #Plottin(matrix_1Mb_MCL, "Int_MCL", "diff", 14, "MCL)
+  #Plottin(subset(matrix_1Mb_MCL_median, bin %in% 0:68), "Int_MCL", "ave_exp", 11,"" )
+  #LinesPlottin(subset(matrix_1Mb_MCL_median, bin %in% 69:135), "Int_MCL", "ave_control", 11,"" )
+  
+  
+  
+  PlottinReg = function(matrix, bin1, bin2,x, y, chromosome, cell_group,typeofcor,ylimdown=NULL, ylimup=NULL){
+    ggscatter(subset(matrix, chrom == chromosome & bin %in% seq(bin1,bin2,1)), x = x, y = y, 
+              add = "reg.line", conf.int = TRUE, size=0.75,
+             
+              cor.coef = TRUE, cor.method = typeofcor,ylim=c(ylimdown,ylimup),
+              xlab = x, ylab = paste("Compartment Score",cell_group,sep="\n"),main=paste0("Chr:",chromosome," bin ",bin1,"-",bin2))
+    
+    }
   
   Plottin2 = function(matrix, x, y, chromosome, cell_group){
     plot(matrix[which(matrix$chrom == chromosome),x], matrix[which(matrix$chrom == chromosome),y],pch=19,cex=0.7, xlab=c("Compartment Score","Normal"), ylab=c("Compartment Score",cell_group),main=paste("chromosome",chromosome))
