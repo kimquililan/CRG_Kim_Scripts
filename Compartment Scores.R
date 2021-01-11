@@ -50,7 +50,7 @@ SubsetMatrix = function(chr){
   chromosome = 0
   SubsetMatrix_1Mb = c()
   ListOfTen= subset(SubsetMatrix_100Kb, start %in% seq(chromosome*1e6, (chromosome+1)*1e6-1e5, by=1e5))
-  MeanListOfTen = apply(ListOfTen[,-(1:4)],2, mean, na.rm=T)
+  MeanListOfTen = apply(ListOfTen[,-(1:4)],2, median, na.rm=T)
   SubsetMatrix_1Mb = data.frame(bin = 0, start = chromosome*1e6, end = (chromosome+1)*1e6, chrom = chr, t(MeanListOfTen))
     
   for(chromosome in 1:(chrom.lengths[chr]-1)){
@@ -241,7 +241,7 @@ new_matrix_CLL = AnalysisMatrix("CLL",matrix_100kb)
   colnames(IntAllChrom) = paste0(list.samples,"_Int")  #int scores ALL 2887
   CS = matrix_1Mb[,-c(1:4)]  
   colnames(CS) = paste0(names(CS),"_CS")
-  MeanControl = apply(matrix_1Mb, 1, function(x) mean(as.numeric(x[control])))  
+  MeanControl = apply(matrix_1Mb, 1, function(x) median(as.numeric(x[control])))  
   CSDiff = t(apply(matrix_1Mb, 1, function(x)  x[list.samples]-mean(x[control])))
   colnames(CSDiff) =  paste0(list.samples, "_CSDiff")
   
