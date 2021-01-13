@@ -270,8 +270,8 @@ new_matrix_CLL = AnalysisMatrix("CLL",matrix_100kb)
   
   #-------Interaction Counts vs MCL/CLL/Normal CS
   
-  Plottin = function(matrix, x, y, chromosome, cell_group,ylimdown=NULL, ylimup=NULL){
-    plot(matrix[which(matrix$chrom == chromosome),x], matrix[which(matrix$chrom == chromosome),y],pch=19,cex=0.5,ylim=c(ylimdown,ylimup),xlab="Interaction Scores", ylab=c("Compartment Score",cell_group),main=paste("chromosome",chromosome))
+  Plottin = function(matrix, x, y, chromosome, cell_group,ylimdown=NULL, ylimup=NULL,xlimdown=NULL,xlimup=NULL,bin){
+    plot(matrix[which(matrix$chrom == chromosome),x], matrix[which(matrix$chrom == chromosome),y],pch=19,cex=0.5,ylim=c(ylimdown,ylimup),xlim=c(xlimdown,xlimup),xlab=c("Interaction Scores",x), ylab=c("Compartment Score",cell_group),main=c(paste("chromosome",chromosome),bin))
   }
   LinesPlottin = function(matrix, x, y, chromosome, cell_group){
     lines(matrix[which(matrix$chrom == chromosome),x], matrix[which(matrix$chrom == chromosome),y],type ='p',pch=19,cex=0.5, col="grey")
@@ -412,6 +412,32 @@ new_matrix_CLL = AnalysisMatrix("CLL",matrix_100kb)
   }
   
   Fig4("MCL", matrix_1Mb_MCL5, "Int", 11, "Interaction Score")
+
+  
+  
+  #----------------MCL-CLL-------------------------
+  MCL_CLL_matrix = list()
+  for(i in 1:22){
+    
+    MCL = subset(matrix_1Mb_MCL_median, chrom == i)
+    CLL = subset(matrix_1Mb_CLL_median, chrom == i)
+    bins.to.include = Reduce(intersect, list(MCL$bin, CLL$bin))
+    MCL = MCL[which(MCL$bin %in% bins.to.include),]
+    CLL = CLL[which(CLL$bin %in% bins.to.include),]
+    MCL_CLL_matrix[[i]] = data.frame(MCL[,1:4],
+                                     MCL_Int = MCL$Int_MCL,
+                                     CLL_Int = CLL$Int_CLL, 
+                                     MCL_CS = MCL$ave_exp,
+                                     CLL_CS = CLL$ave_exp,
+                                     Normal_CS = MCL$ave_control,
+                                     MCL_Diff_CS = MCL$diff, 
+                                     CLL_Diff_CS = CLL$diff, 
+                                     MCL_CLL_CS = MCL$diff - CLL$diff) 
+                                    
+    
+  }
+  kim = do.call(rbind, MCL_CLL_matrix)
+  
   
   
   
