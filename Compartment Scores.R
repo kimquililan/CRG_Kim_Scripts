@@ -82,8 +82,8 @@ DataImputation = function(cell_group, matrix){
          experimental <<- c("cMCL_1064","cMCL_568","nnMCL_309","nnMCL_817", "nnMCL_828"),
          experimental <<- c("mCLL_3","mCLL_110","mCLL_1228","mCLL_1525","mCLL_1532","uCLL_12","uCLL_182"))
   
-  #control <<- c("NBC_1","NBC_2","NBC_3","GCBC_1","GCBC_2","GCBC_3","MBC_1","MBC_2","MBC_3","PBC_1","PBC_2","PBC_3")
-  control <<- c("NBC_1","NBC_2","NBC_3","MBC_1","MBC_2","MBC_3")
+  control <<- c("NBC_1","NBC_2","NBC_3","GCBC_1","GCBC_2","GCBC_3","MBC_1","MBC_2","MBC_3","PBC_1","PBC_2","PBC_3")
+  
   
   NAs.exp<-rowSums(is.na(matrix[,experimental]))
   NAs.control<-rowSums(is.na(matrix[,control]))
@@ -119,14 +119,14 @@ new_matrix_CLL = AnalysisMatrix("CLL",matrix_100kb)
 
 #Genome wide              
   #Barplots
-    par(mfrow=c(2,1))
-    new_matrix = new_matrix_MCL
+    par(mfrow=c(3,1))
+    new_matrix = output
     for(i in 1:22){
       barplot(new_matrix[which(new_matrix$chrom == i),"ave_control"],main=paste0("chr",i),ylim=c(-1,1),ylab="Normal",col=ifelse(new_matrix[which(new_matrix$chrom == i),"ave_control"]>0,"red","blue"),border=NA)
       barplot(new_matrix[which(new_matrix$chrom == i),"ave_exp"],ylim=c(-1,1),ylab="MCL",col=ifelse(new_matrix[which(new_matrix$chrom == i),"ave_exp"]>0,"red","blue"),border=NA)
     }
     for(i in 1:22){
-      barplot(new_matrix_MCL[which(new_matrix_MCL$chrom == i),"diff"], main=paste0("chr",i), ylim=c(-1,1), ylab="Mean PC1 values (MCL-normal)", col=ifelse(new_matrix_MCL[which(new_matrix_MCL$chrom == i),"diff"]>0,"red","blue"),border=NA)
+      barplot(new_matrix[which(new_matrix$chrom == i),"diff"], ylim=c(-0.5,0.5), ylab="Mean PC1 values (MCL-normal)", col=ifelse(new_matrix[which(new_matrix$chrom == i),"diff"]>0,"red","blue"),border=NA)
     }
 
   #Boxplots
@@ -169,18 +169,21 @@ new_matrix_CLL = AnalysisMatrix("CLL",matrix_100kb)
     #Mean MCL and Mean Normal 
       i=0                  
       for(i in 1:22){
-        exp = density(subset(new_matrix_CLL, chrom == i)$ave_exp, na.rm=T)
-        ctr = density(subset(new_matrix_CLL, chrom == i)$ave_control, na.rm=T)
-        plot(exp, xlim=c(-0.1,0.1), main=paste0("chr",i), type="n")
-        lines(exp, col="yellow4")
-        lines(ctr, col="grey")
+        exp = density(subset(new_matrix_MCL, chrom == i)$ave_exp, na.rm=T)
+        ctr = density(subset(new_matrix_MCL, chrom == i)$ave_control, na.rm=T)
+        plot(exp, xlim=c(-1.5,1.5), main=paste0("chr",i), type="n")
+        lines(exp, col="red",lwd=2)
+        lines(ctr, col="blue",lwd=2)
         }
 
 
                    
 #Grouped by Compartment State
   #Pie Chart
-  new_matrix = new_matrix_MCL
+      #chrom == 11 & start %in% 0:69300000
+      #chrom == 11 & start %in% 69400000:135300000
+      #chrom == 14 & start %in% 0:105800000
+  new_matrix = subset(new_matrix_CLL, chrom == 11 & start %in% 69400000:135300000)
   pie_chart = data.frame(table(new_matrix[,"cs_status"]))
   pie_chart$percentage = pie_chart[,2]/sum(pie_chart[,2])*100
   pie(pie_chart$percentage, labels = NA, col=c("grey","blue","red","black"))
@@ -196,15 +199,8 @@ new_matrix_CLL = AnalysisMatrix("CLL",matrix_100kb)
   counts = t(pie_chart[,c("perc_chr15_22","perc_rest")])
   barplot(counts, col=c("blue","grey"), legend=rownames(counts),legend.position = "topright",ylab="Percentage of Compartments")
 
-  #Boxplot
-  boxplot(diff~chrom, data=new_matrix[which(new_matrix$cs_status == "A-B"),],pch=19)
-  boxplot(diff~chrom, data=new_matrix[which(new_matrix$cs_status == "B-A"),],pch=19)
-  boxplot(diff~chrom, data=new_matrix[which(new_matrix$cs_status == "B-B"),],pch=19)
-  boxplot(diff~chrom, data=new_matrix[which(new_matrix$cs_status == "A-B"),],pch=19,ylim=c(-1,1))
-  boxplot(diff~chrom, data=new_matrix[which(new_matrix$cs_status == "B-A"),],pch=19,ylim=c(-1,1))
-  boxplot(diff~chrom, data=new_matrix[which(new_matrix$cs_status %in% c("A-B","B-A")),],pch=19,col="yellow",main="CLL vs normals")
-  abline(h=0,lty=2)
-
+  #Bar graph
+  
 #-----------------------------Interaction Score vs CS-------------------------
 
   setwd("~/Google Drive/Data/Interaction Scores (Genome Wide)")
@@ -221,8 +217,8 @@ new_matrix_CLL = AnalysisMatrix("CLL",matrix_100kb)
         IntScores_CLL = do.call(rbind,Matrix_Int_CS("CLL"))
         
         tmp = data.frame(matrix_1Mb, Int_MCL = unlist(IntScores_MCL), Int_CLL = unlist(IntScores_CLL))
-        matrix_1Mb_MCL = AnalysisMatrix("MCL",tmp)[,c("bin","start","end","chrom", "Int_MCL","ave_exp","ave_control","diff")]
-        matrix_1Mb_CLL = AnalysisMatrix("CLL",tmp)[,c("bin","start","end","chrom","Int_CLL","ave_exp","ave_control","diff")]
+        matrix_1Mb_MCL = AnalysisMatrix("MCL",tmp)[,c("bin","start","end","chrom", "Int_MCL","ave_exp","ave_control","diff", "cs_status")]
+        matrix_1Mb_CLL = AnalysisMatrix("CLL",tmp)[,c("bin","start","end","chrom","Int_CLL","ave_exp","ave_control","diff","cs_status")]
         
   #Individual samples matrix
   list.samples = c("cMCL_1064","cMCL_568","nnMCL_309","nnMCL_817", "nnMCL_828",
@@ -278,7 +274,7 @@ new_matrix_CLL = AnalysisMatrix("CLL",matrix_100kb)
   }
   #Plottin(matrix_1Mb_MCL, "Int_MCL", "ave_exp", 11, "MCL" )
   #Plottin(matrix_1Mb_MCL, "Int_MCL", "diff", 14, "MCL)
-  #Plottin(subset(matrix_1Mb_MCL_median, bin %in% 0:68), "Int_MCL", "ave_exp", 11,"" )
+  #Plottin(subset(matrix_1Mb_MCL, bin %in% 0:68), "Int_MCL", "ave_exp", 11,"MCL",)
   #LinesPlottin(subset(matrix_1Mb_MCL_median, bin %in% 69:135), "Int_MCL", "ave_control", 11,"" )
   
   
@@ -301,13 +297,14 @@ new_matrix_CLL = AnalysisMatrix("CLL",matrix_100kb)
   #Triple
   par(mfrow=c(3,1))
   
+  
   Plottin3_orig = function(matrix, x, y, chromosome, ylabel, cell_group,ylimdown=NULL,ylimup=NULL){
-    plot(matrix[which(matrix$chrom == chromosome),x], matrix[which(matrix$chrom == chromosome),y],pch=19,cex=0.5, ylim=c(ylimdown,ylimup),xlab="Genomic Location", ylab=c(ylabel,cell_group),main=paste("chromosome",chromosome),col=colour)
+    plot(matrix[which(matrix$chrom == chromosome),x], matrix[which(matrix$chrom == chromosome),y],pch=19,cex=0.5, ylim=c(ylimdown,ylimup),xlab="Genomic Location", ylab=c(ylabel,cell_group),main=paste("chromosome",chromosome),col="black")
     lines(matrix[which(matrix$chrom == chromosome),x], matrix[which(matrix$chrom == chromosome),y],lwd=2,col=ifelse(matrix[which(matrix$chrom == chromosome),y]>0,"red","blue"));abline(h=0,lty=2)
   }
   
   Plottin3 = function(matrix, x, y, chromosome, ylabel, cell_group,ylimdown=NULL,ylimup=NULL){
-    plot(matrix[which(matrix$chrom == chromosome),x], matrix[which(matrix$chrom == chromosome),y],pch=19,cex=0.5,ylim=c(ylimdown,ylimup),xlab="Genomic Location", ylab=c(ylabel,cell_group),main=paste("chromosome",chromosome),col=ifelse(matrix[which(matrix$chrom == chromosome),y]>0,"red","blue"))
+    plot(matrix[which(matrix$chrom == chromosome),x], matrix[which(matrix$chrom == chromosome),y],pch=19,cex=0.15,ylim=c(ylimdown,ylimup),xlab="Genomic Location", ylab=c(ylabel,cell_group),main=paste("chromosome",chromosome),col=ifelse(matrix[which(matrix$chrom == chromosome),y]>0,"red","blue"))
     abline(h=0, lty=2)
     segments(x0=matrix[which(matrix$chrom == chromosome),x][-length(which(matrix$chrom == chromosome))],
               y0=matrix[which(matrix$chrom == chromosome),y][-length(which(matrix$chrom == chromosome))],
