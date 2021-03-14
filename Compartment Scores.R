@@ -278,15 +278,19 @@ new_matrix_CLL = AnalysisMatrix("CLL",matrix_100kb)
   #LinesPlottin(subset(matrix_1Mb_MCL_median, bin %in% 69:135), "Int_MCL", "ave_control", 11,"" )
   
   
-  
-  PlottinReg = function(matrix, bin1, bin2,x, y, chromosome, cell_group,typeofcor,ylimdown=NULL, ylimup=NULL){
+  library("ggpubr")
+  #cell_group     MCL-normal, MCL, CLL, CLL-normal
+  #typeofcor      pearson, kendall, spearman
+  #bin1, bin2     selected bins in specific chromosome
+  PlottinReg = function(matrix, bin1, bin2,x, y, chromosome, cell_group,typeofcor = "pearson",ylimdown=NULL, ylimup=NULL){
     ggscatter(subset(matrix, chrom == chromosome & bin %in% seq(bin1,bin2,1)), x = x, y = y, 
               add = "reg.line", conf.int = TRUE, size=0.75,
              
               cor.coef = TRUE, cor.method = typeofcor,ylim=c(ylimdown,ylimup),
               xlab = x, ylab = paste("Compartment Score",cell_group,sep="\n"),main=paste0("Chr:",chromosome," bin ",bin1,"-",bin2))
     
-    }
+  }
+  
   
   Plottin2 = function(matrix, x, y, chromosome, cell_group){
     plot(matrix[which(matrix$chrom == chromosome),x], matrix[which(matrix$chrom == chromosome),y],pch=19,cex=0.7, xlab=c("Compartment Score","Normal"), ylab=c("Compartment Score",cell_group),main=paste("chromosome",chromosome))
